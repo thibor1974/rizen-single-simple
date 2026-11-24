@@ -67,6 +67,43 @@ and serve gateway and DNS from that network.
 - A pull secret from <https://console.redhat.com/openshift/install/pull-secret>.
 - An SSH key on the host for node access.
 
+## Configuration
+
+Every script reads `cluster.env` (copy it from `cluster.env.example`). `scripts/lib.sh`
+checks it on every run and stops with a clear message if a value is missing, still
+`CHANGE_ME`, or inconsistent.
+
+**Must be set:**
+
+| Setting | Meaning |
+| --- | --- |
+| `LAN_IF` | The host NIC on your LAN, e.g. `enp3s0` |
+| `LAN_IP` | The host's address on that NIC. LAN clients use it for DNS, the API and the console, so it must not change (static IP or DHCP reservation) |
+
+**Usually fine as is:**
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `CLUSTER_NAME`, `BASE_DOMAIN` | `ocp`, `lab.internal` | Cluster domain is `<name>.<domain>`, e.g. `api.ocp.lab.internal` |
+| `OCP_VERSION` | `4.22.18` | Exact release; `60-tools.sh` downloads `oc` and `openshift-install` for it |
+| `UPSTREAM_DNS` | `1.1.1.1` | Resolver the cluster uses for names outside the cluster domain |
+| `BUSINESS_SUBNET` | `192.168.127` | First three octets of the business `/24`. The host is `.1`. Must be unused on your LAN and VPNs, and must not overlap the cluster networks below |
+| `BUSINESS_NET_NAME`, `BUSINESS_BRIDGE` | `ocp-business`, `virbr-ocp-biz` | libvirt network and bridge names (bridge: 15 characters max) |
+| `MASTER_n_OCTET` | `10`, `11`, `12` | Last octet of each node's IP. Must differ and stay out of the MetalLB range |
+| `MASTER_n_MAC` | `52:54:00:12:6b:1n` | VM MACs, used as DHCP reservation keys |
+| `BUSINESS_METALLB_FIRST_OCTET`, `..._LAST_OCTET` | `100`, `149` | Address range MetalLB hands to `LoadBalancer` Services |
+| `CLUSTER_NETWORK_CIDR`, `CLUSTER_NETWORK_HOST_PREFIX` | `10.128.0.0/14`, `23` | Pod network, and the per-node slice of it |
+| `SERVICE_NETWORK_CIDR` | `172.30.0.0/16` | Service network |
+| `VM_VCPUS`, `VM_MEM_GIB`, `VM_DISK_GIB` | `8`, `24`, `200` | Size of each of the 3 VMs. Minimum 4 vCPU, 16 GiB, 100 GiB (checked by `00-preflight.sh`). Host RAM needed: `3 x VM_MEM_GIB + 4` GiB |
+| `VM_DISK_DIR` | `/var/lib/libvirt/images/ocp` | VM disks and the agent ISO. Put it on SSD/NVMe |
+| `PULL_SECRET_FILE` | `/root/pull-secret.json` | Red Hat pull secret |
+| `SSH_PUB_KEY_FILE` | `/root/.ssh/id_ed25519.pub` | Key installed for the `core` user on the nodes |
+| `WORK_DIR` | `/root/ocp-install` | Installer directory. Ends up holding the pull secret, kubeconfig and kubeadmin password: keep it out of synced folders |
+
+Changing `BUSINESS_SUBNET`, node octets or MACs after the install means reinstalling:
+the node IPs are baked into the cluster. After any change, re-run `scripts/05-render.sh`
+and the host scripts that install what it renders.
+
 ## Install
 
 Copy this folder to the host, then as root:
