@@ -1,0 +1,13 @@
+[Unit]
+Description=dnsmasq for OpenShift (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/sbin/dnsmasq --keep-in-foreground --pid-file --conf-file=/etc/dnsmasq.d/ocp/%i.conf
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

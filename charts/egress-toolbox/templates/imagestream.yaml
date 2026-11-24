@@ -1,0 +1,11 @@
+{{- if .Values.build.enabled }}
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: {{ include "egress-toolbox.fullname" . }}
+  labels:
+    {{- include "egress-toolbox.labels" . | nindent 4 }}
+spec:
+  lookupPolicy:
+    local: false
+{{- end }}

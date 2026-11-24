@@ -1,0 +1,64 @@
+# Name overrides. Resources are named <release>-<chart> unless set.
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+
+image:
+  # build.enabled=true: OpenShift builds the Containerfile in this chart and pushes it
+  # to the internal registry (the registry must be enabled, see README.md).
+  # build.enabled=false: set repository/tag to an image you built and pushed yourself.
+  repository: ""
+  tag: latest
+  pullPolicy: IfNotPresent
+
+build:
+  enabled: true
+  # Base image is defined in the Containerfile. Build pods run in this namespace but are
+  # not selected by the EgressIP, so they pull from their node's business address. With
+  # networkPolicy.defaultDeny they may only reach TCP 443/6443, the internal registry and DNS.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+
+egressIP:
+  enabled: true
+  # Free addresses from BUSINESS_EGRESS_FIRST_OCTET..LAST_OCTET (192.168.127.150-199).
+  # One IP is enough: the infra node is the only egress-assignable node, so there is
+  # no failover to spread across.
+  ips:
+    - 192.168.127.150
+
+networkPolicy:
+  # Deny all ingress and egress for every pod in the namespace. The policies below
+  # then open only what is needed. Build pods get their own narrow exception.
+  defaultDeny: true
+  # Allow the toolbox pods out on the ports below (on top of the default deny).
+  enabled: true
+  # Destinations allowed on the ports below. Empty = any destination.
+  # Example to restrict to the business subnet: ["192.168.127.0/24"]
+  cidrs: []
+  ports:
+    - port: 443
+      protocol: TCP
+    - port: 80
+      protocol: TCP
+    - port: 22
+      protocol: TCP
+  # Off by default: the requirement is TCP 443/80/22 only. With it off, use IP addresses,
+  # because name resolution (UDP/TCP 5353 to openshift-dns) is blocked.
+  allowDNS: false
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

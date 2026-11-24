@@ -1,0 +1,13 @@
+<network>
+  <name>${MGMT_NET_NAME}</name>
+  <!-- Routed, without NAT, so admins on the LAN can reach the nodes' management
+       addresses directly. Mode "open" means libvirt adds no firewall rules of its
+       own: scripts/50-firewall.sh puts the bridge in the firewalld zone "ocp-mgmt"
+       and lets the LAN in for SSH, the API and the default ingress only. Nodes
+       cannot open connections towards the host or the LAN through it.
+       The host (${MGMT_HOST_IP}) is the management gateway. -->
+  <forward mode='open'/>
+  <bridge name='${MGMT_BRIDGE}' stp='on' delay='0'/>
+  <dns enable='no'/>
+  <ip address='${MGMT_HOST_IP}' netmask='255.255.255.0'/>
+</network>

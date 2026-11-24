@@ -1,0 +1,27 @@
+apiVersion: v1
+baseDomain: ${BASE_DOMAIN}
+metadata:
+  name: ${CLUSTER_NAME}
+compute:
+  - name: worker
+    architecture: amd64
+    hyperthreading: Enabled
+    replicas: 1
+controlPlane:
+  name: master
+  architecture: amd64
+  hyperthreading: Enabled
+  replicas: 3
+networking:
+  networkType: OVNKubernetes
+  clusterNetwork:
+    - cidr: ${CLUSTER_NETWORK_CIDR}
+      hostPrefix: ${CLUSTER_NETWORK_HOST_PREFIX}
+  serviceNetwork:
+    - ${SERVICE_NETWORK_CIDR}
+  machineNetwork:
+    - cidr: ${MACHINE_NETWORK_CIDR}
+platform:
+  none: {}
+pullSecret: '${PULL_SECRET}'
+sshKey: '${SSH_PUB_KEY}'

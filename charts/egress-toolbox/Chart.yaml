@@ -1,0 +1,7 @@
+apiVersion: v2
+name: egress-toolbox
+description: UBI toolbox pod (curl, wget, ping) whose outbound traffic leaves through an EgressIP on the business network
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+kubeVersion: ">=1.25.0-0"

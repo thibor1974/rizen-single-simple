@@ -1,0 +1,206 @@
+apiVersion: v1beta1
+kind: AgentConfig
+metadata:
+  name: ${CLUSTER_NAME}
+# The rendezvous node is reached on the machine network, which is business.
+rendezvousIP: ${MASTER_0_BUSINESS_IP}
+# Every node has two NICs:
+# - enp2s0, business: DHCP reservation from the host, and the only source of a
+#   default route in the main routing table. OpenShift therefore puts br-ex and the
+#   node IP on it, and all cluster and outbound traffic uses it.
+# - enp1s0, management: static, and no default route in the main table, so it can
+#   never become the primary interface. It only answers admins: SSH, the API and the
+#   default ingress (see templates/node-firewall.nft).
+#
+# Management replies use policy routing: anything sent *from* the management address
+# looks up table ${MGMT_ROUTE_TABLE}, whose default route is the management gateway on enp1s0.
+# Admins on other subnets (routed through the host) therefore get their replies back
+# on management instead of out of br-ex, and nothing else changes: traffic the node
+# starts itself picks the br-ex address and the main table.
+hosts:
+  - hostname: master-0
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        macAddress: ${MASTER_0_MGMT_MAC}
+      - name: enp2s0
+        macAddress: ${MASTER_0_BUSINESS_MAC}
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: ${MASTER_0_MGMT_MAC}
+          ipv4:
+            enabled: true
+            dhcp: false
+            address:
+              - ip: ${MASTER_0_MGMT_IP}
+                prefix-length: 24
+          ipv6:
+            enabled: false
+        - name: enp2s0
+          type: ethernet
+          state: up
+          mac-address: ${MASTER_0_BUSINESS_MAC}
+          ipv4:
+            enabled: true
+            dhcp: true
+          ipv6:
+            enabled: false
+      routes:
+        config:
+          - destination: ${MGMT_CIDR}
+            next-hop-interface: enp1s0
+            table-id: ${MGMT_ROUTE_TABLE}
+          - destination: 0.0.0.0/0
+            next-hop-address: ${MGMT_HOST_IP}
+            next-hop-interface: enp1s0
+            table-id: ${MGMT_ROUTE_TABLE}
+      route-rules:
+        config:
+          - ip-from: ${MASTER_0_MGMT_IP}/32
+            route-table: ${MGMT_ROUTE_TABLE}
+            priority: ${MGMT_RULE_PRIORITY}
+  - hostname: master-1
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        macAddress: ${MASTER_1_MGMT_MAC}
+      - name: enp2s0
+        macAddress: ${MASTER_1_BUSINESS_MAC}
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: ${MASTER_1_MGMT_MAC}
+          ipv4:
+            enabled: true
+            dhcp: false
+            address:
+              - ip: ${MASTER_1_MGMT_IP}
+                prefix-length: 24
+          ipv6:
+            enabled: false
+        - name: enp2s0
+          type: ethernet
+          state: up
+          mac-address: ${MASTER_1_BUSINESS_MAC}
+          ipv4:
+            enabled: true
+            dhcp: true
+          ipv6:
+            enabled: false
+      routes:
+        config:
+          - destination: ${MGMT_CIDR}
+            next-hop-interface: enp1s0
+            table-id: ${MGMT_ROUTE_TABLE}
+          - destination: 0.0.0.0/0
+            next-hop-address: ${MGMT_HOST_IP}
+            next-hop-interface: enp1s0
+            table-id: ${MGMT_ROUTE_TABLE}
+      route-rules:
+        config:
+          - ip-from: ${MASTER_1_MGMT_IP}/32
+            route-table: ${MGMT_ROUTE_TABLE}
+            priority: ${MGMT_RULE_PRIORITY}
+  - hostname: master-2
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        macAddress: ${MASTER_2_MGMT_MAC}
+      - name: enp2s0
+        macAddress: ${MASTER_2_BUSINESS_MAC}
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: ${MASTER_2_MGMT_MAC}
+          ipv4:
+            enabled: true
+            dhcp: false
+            address:
+              - ip: ${MASTER_2_MGMT_IP}
+                prefix-length: 24
+          ipv6:
+            enabled: false
+        - name: enp2s0
+          type: ethernet
+          state: up
+          mac-address: ${MASTER_2_BUSINESS_MAC}
+          ipv4:
+            enabled: true
+            dhcp: true
+          ipv6:
+            enabled: false
+      routes:
+        config:
+          - destination: ${MGMT_CIDR}
+            next-hop-interface: enp1s0
+            table-id: ${MGMT_ROUTE_TABLE}
+          - destination: 0.0.0.0/0
+            next-hop-address: ${MGMT_HOST_IP}
+            next-hop-interface: enp1s0
+            table-id: ${MGMT_ROUTE_TABLE}
+      route-rules:
+        config:
+          - ip-from: ${MASTER_2_MGMT_IP}/32
+            route-table: ${MGMT_ROUTE_TABLE}
+            priority: ${MGMT_RULE_PRIORITY}
+  # The agent installer knows master and worker only. This worker becomes the infra
+  # node: scripts/95-post-install.sh labels and taints it after the install.
+  - hostname: infra-0
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        macAddress: ${INFRA_0_MGMT_MAC}
+      - name: enp2s0
+        macAddress: ${INFRA_0_BUSINESS_MAC}
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: ${INFRA_0_MGMT_MAC}
+          ipv4:
+            enabled: true
+            dhcp: false
+            address:
+              - ip: ${INFRA_0_MGMT_IP}
+                prefix-length: 24
+          ipv6:
+            enabled: false
+        - name: enp2s0
+          type: ethernet
+          state: up
+          mac-address: ${INFRA_0_BUSINESS_MAC}
+          ipv4:
+            enabled: true
+            dhcp: true
+          ipv6:
+            enabled: false
+      routes:
+        config:
+          - destination: ${MGMT_CIDR}
+            next-hop-interface: enp1s0
+            table-id: ${MGMT_ROUTE_TABLE}
+          - destination: 0.0.0.0/0
+            next-hop-address: ${MGMT_HOST_IP}
+            next-hop-interface: enp1s0
+            table-id: ${MGMT_ROUTE_TABLE}
+      route-rules:
+        config:
+          - ip-from: ${INFRA_0_MGMT_IP}/32
+            route-table: ${MGMT_ROUTE_TABLE}
+            priority: ${MGMT_RULE_PRIORITY}

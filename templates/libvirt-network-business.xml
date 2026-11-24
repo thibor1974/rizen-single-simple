@@ -1,0 +1,15 @@
+<network>
+  <name>${BUSINESS_NET_NAME}</name>
+  <!-- The machine network, and the cluster's only way out: NAT to the host's LAN.
+       To use a real business network instead, bridge a physical NIC or VLAN here
+       and give the nodes that network's gateway and DNS. -->
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='${BUSINESS_BRIDGE}' stp='on' delay='0' zone='libvirt'/>
+  <!-- DNS and DHCP are served by ocp-dnsmasq@business, so libvirt must not start its own. -->
+  <dns enable='no'/>
+  <ip address='${BUSINESS_HOST_IP}' netmask='255.255.255.0'/>
+</network>

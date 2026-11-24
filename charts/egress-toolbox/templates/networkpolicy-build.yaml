@@ -1,0 +1,40 @@
+{{- if and .Values.build.enabled .Values.networkPolicy.defaultDeny }}
+# Exception to the default deny, for build pods only: they pull the UBI base image and
+# packages (TCP 443), push to the internal registry (5000), report to the API (6443),
+# and resolve names (cluster DNS). The toolbox pods are not matched.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "egress-toolbox.fullname" . }}-build-egress
+  labels:
+    {{- include "egress-toolbox.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: openshift.io/build.name
+        operator: Exists
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - port: 443
+          protocol: TCP
+        - port: 6443
+          protocol: TCP
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-image-registry
+      ports:
+        - port: 5000
+          protocol: TCP
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - port: 5353
+          protocol: UDP
+        - port: 5353
+          protocol: TCP
+{{- end }}

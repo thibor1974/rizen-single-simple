@@ -1,0 +1,28 @@
+{{- if .Values.build.enabled }}
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: {{ include "egress-toolbox.fullname" . }}
+  labels:
+    {{- include "egress-toolbox.labels" . | nindent 4 }}
+spec:
+  runPolicy: Serial
+  successfulBuildsHistoryLimit: 2
+  failedBuildsHistoryLimit: 2
+  source:
+    type: Dockerfile
+    dockerfile: |
+      {{- .Files.Get "Containerfile" | nindent 6 }}
+  strategy:
+    type: Docker
+    dockerStrategy: {}
+  output:
+    to:
+      kind: ImageStreamTag
+      name: {{ include "egress-toolbox.fullname" . }}:{{ .Values.image.tag }}
+  resources:
+    {{- toYaml .Values.build.resources | nindent 4 }}
+  triggers:
+    # Builds on install, and again whenever the Containerfile changes on upgrade.
+    - type: ConfigChange
+{{- end }}

@@ -1,0 +1,42 @@
+# Rendered once per pool by scripts/05-render.sh from templates/node-firewall.nft and
+# applied at install time. Loads the node firewall before the network comes up.
+# sshd, the API server and the routers still listen on all addresses: the firewall
+# decides who reaches them on which NIC, so a late DHCP lease can never leave a
+# service unable to bind.
+# Inspect: sudo nft list table inet node_filter
+# Remove live (until the next reboot): sudo nft delete table inet node_filter
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  name: 99-master-node-firewall
+  labels:
+    machineconfiguration.openshift.io/role: master
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      files:
+        - path: /etc/nftables/node-firewall.nft
+          mode: 420
+          overwrite: true
+          contents:
+            source: data:text/plain;charset=utf-8;base64,IyBNYW5hZ2VkIGJ5IE1hY2hpbmVDb25maWcgOTktbWFzdGVyLW5vZGUtZmlyZXdhbGwuCiMKIyBCdXNpbmVzcyAoZW5wMnMwLCBicmlkZ2VkIGludG8gYnItZXggYnkgT1ZOLUt1YmVybmV0ZXMpOiB0aGUgbWFjaGluZSBuZXR3b3JrLgojICAgQ29ubmVjdGlvbnMgdG8gdGhlIG5vZGUgaXRzZWxmIGFyZSBhY2NlcHRlZCBvbmx5IGZyb20gdGhlIG90aGVyIG5vZGVzIGFuZCB0aGUKIyAgIGhvc3QncyBpbnRlcm5hbCBsb2FkIGJhbGFuY2VyOiBldGNkLCBvdmVybGF5LCBrdWJlbGV0LCBpbnRlcm5hbCBBUEksIG1hY2hpbmUKIyAgIGNvbmZpZyBzZXJ2ZXIuIEFueW9uZSBlbHNlIG9uIHRoZSBidXNpbmVzcyBzaWRlIChjbGllbnRzLCBiYWNrZW5kcywgdGhlIGdhdGV3YXkncwojICAgZmFyIHNpZGUpIGlzIHJlZnVzZWQgU1NILCB0aGUgQVBJLCB0aGUgZGVmYXVsdCBpbmdyZXNzIGFuZCBldmVyeSBvdGhlciBob3N0CiMgICBzZXJ2aWNlLiBNZXRhbExCIGFuZCBOb2RlUG9ydCB0cmFmZmljIGlzIHRyYW5zbGF0ZWQgdG8gcG9kcyBiZWZvcmUgaXQgcmVhY2hlcwojICAgdGhpcyBob29rLCBhbmQgcmVwbGllcyB0byB0aGUgbm9kZSdzIG93biBjb25uZWN0aW9ucyBwYXNzLgojCiMgTWFuYWdlbWVudCAoZW5wMXMwKTogYWRtaW4gYWNjZXNzIG9ubHkuIEFsbG93ZWQ6IFNTSCAyMiwgQVBJIDY0NDMsIGRlZmF1bHQgaW5ncmVzcyBhbmQgd2ViIGNvbnNvbGUgODAvNDQzLgojICAgRXZlcnl0aGluZyBlbHNlIChldGNkLCBrdWJlbGV0LCBtYWNoaW5lIGNvbmZpZyBzZXJ2ZXIuLi4pIGlzIHJlZnVzZWQsIGFuZAojICAgbm90aGluZyBpcyByb3V0ZWQgaW4gb3Igb3V0LCBzbyBwb2RzIGNhbm5vdCB1c2UgdGhpcyBuZXR3b3JrLgp0YWJsZSBpbmV0IG5vZGVfZmlsdGVyCmRlbGV0ZSB0YWJsZSBpbmV0IG5vZGVfZmlsdGVyCnRhYmxlIGluZXQgbm9kZV9maWx0ZXIgewoJc2V0IGNsdXN0ZXJfc291cmNlcyB7CgkJdHlwZSBpcHY0X2FkZHIKCQllbGVtZW50cyA9IHsgMTkyLjE2OC4xMjcuMTAsIDE5Mi4xNjguMTI3LjExLCAxOTIuMTY4LjEyNy4xMiwgMTkyLjE2OC4xMjcuMjAsIDE5Mi4xNjguMTI3LjEgfQoJfQoKCWNoYWluIGlucHV0IHsKCQl0eXBlIGZpbHRlciBob29rIGlucHV0IHByaW9yaXR5IGZpbHRlcjsgcG9saWN5IGFjY2VwdDsKCQlpaWZuYW1lIHsgImJyLWV4IiwgImVucDJzMCIgfSBqdW1wIGJ1c2luZXNzX2luCgkJaWlmbmFtZSAiZW5wMXMwIiBqdW1wIG1hbmFnZW1lbnRfaW4KCX0KCgljaGFpbiBidXNpbmVzc19pbiB7CgkJY3Qgc3RhdGUgZXN0YWJsaXNoZWQscmVsYXRlZCBhY2NlcHQKCQltZXRhIGw0cHJvdG8gaWNtcCBhY2NlcHQKCQlpcCBzYWRkciBAY2x1c3Rlcl9zb3VyY2VzIGFjY2VwdCBjb21tZW50ICJjbHVzdGVyIHRyYWZmaWMiCgkJY3Qgc3RhdHVzIGRuYXQgYWNjZXB0IGNvbW1lbnQgInNlcnZpY2UgdHJhZmZpYyBzZW50IG9uIHRvIGEgbG9jYWwgZW5kcG9pbnQiCgkJdGNwIGRwb3J0IHsgMjIsIDgwLCA0NDMsIDY0NDMsIDIyNjIzIH0gY291bnRlciBkcm9wIGNvbW1lbnQgIm1hbmFnZW1lbnQgc2VydmljZXMgZnJvbSBvdXRzaWRlIHRoZSBjbHVzdGVyIgoJCWNvdW50ZXIgZHJvcCBjb21tZW50ICJhbnkgb3RoZXIgaG9zdCBzZXJ2aWNlIGZyb20gb3V0c2lkZSB0aGUgY2x1c3RlciIKCX0KCgljaGFpbiBtYW5hZ2VtZW50X2luIHsKCQljdCBzdGF0ZSBlc3RhYmxpc2hlZCxyZWxhdGVkIGFjY2VwdAoJCW1ldGEgbDRwcm90byBpY21wIGFjY2VwdAoJCXRjcCBkcG9ydCB7IDIyLCA4MCwgNDQzLCA2NDQzIH0gYWNjZXB0CgkJY291bnRlciBkcm9wIGNvbW1lbnQgIm5vdCBhIG1hbmFnZW1lbnQgc2VydmljZSIKCX0KCgljaGFpbiBmb3J3YXJkIHsKCQl0eXBlIGZpbHRlciBob29rIGZvcndhcmQgcHJpb3JpdHkgZmlsdGVyOyBwb2xpY3kgYWNjZXB0OwoJCWlpZm5hbWUgImVucDFzMCIgY291bnRlciBkcm9wIGNvbW1lbnQgIm5vdGhpbmcgaXMgcm91dGVkIGluIGZyb20gbWFuYWdlbWVudCIKCQlvaWZuYW1lICJlbnAxczAiIGNvdW50ZXIgZHJvcCBjb21tZW50ICJub3RoaW5nIGlzIHJvdXRlZCBvdXQgdG8gbWFuYWdlbWVudCIKCX0KfQo=
+    systemd:
+      units:
+        - name: node-firewall.service
+          enabled: true
+          contents: |
+            [Unit]
+            Description=Node firewall for the business (enp2s0/br-ex) and management (enp1s0) NICs
+            Wants=network-pre.target
+            Before=network-pre.target sshd.service
+
+            [Service]
+            Type=oneshot
+            RemainAfterExit=yes
+            ExecStart=/usr/sbin/nft -f /etc/nftables/node-firewall.nft
+            ExecStop=/usr/sbin/nft delete table inet node_filter
+
+            [Install]
+            WantedBy=multi-user.target

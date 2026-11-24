@@ -1,0 +1,11 @@
+# Toolbox image: UBI 9 + curl (curl-minimal, already in the base image), wget and ping.
+FROM registry.access.redhat.com/ubi9/ubi:latest
+
+RUN dnf -y install --setopt=install_weak_deps=False --nodocs wget iputils \
+ && dnf clean all \
+ && rm -rf /var/cache/dnf /var/cache/yum
+
+# OpenShift runs the container with a random UID in group 0.
+WORKDIR /tmp
+USER 1001
+CMD ["sleep", "infinity"]

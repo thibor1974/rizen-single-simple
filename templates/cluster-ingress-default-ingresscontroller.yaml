@@ -1,0 +1,18 @@
+# Applied at install time. Pins the default ingress controller to the control plane
+# nodes, so the routers answer on the masters' enp1s0 behind HAProxy. Without this
+# the operator would place them on the only worker, the infra node.
+apiVersion: operator.openshift.io/v1
+kind: IngressController
+metadata:
+  name: default
+  namespace: openshift-ingress-operator
+spec:
+  replicas: 2
+  nodePlacement:
+    nodeSelector:
+      matchLabels:
+        node-role.kubernetes.io/master: ""
+    tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
