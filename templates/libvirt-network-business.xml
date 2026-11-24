@@ -1,6 +1,6 @@
 <network>
   <name>${BUSINESS_NET_NAME}</name>
-  <!-- The machine network, and the cluster's only way out: NAT to the host's LAN.
+  <!-- The only network: machine network and the cluster's way out, NAT to the host's LAN.
        To use a real business network instead, bridge a physical NIC or VLAN here
        and give the nodes that network's gateway and DNS. -->
   <forward mode='nat'>

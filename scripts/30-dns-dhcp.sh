@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Install the two dnsmasq instances and verify the cluster records resolve.
-# business: DNS and DHCP for the nodes. lan: the cluster names for LAN admins.
-# The management network has neither: its addresses are static.
+# business: DNS and DHCP for the nodes. lan: the cluster names for LAN clients.
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 need_root
 need_build
@@ -12,13 +11,6 @@ install -m 0644 "$BUILD_DIR/business.conf" "$BUILD_DIR/lan.conf" "$conf_dir/"
 install -m 0644 "$TEMPLATE_DIR/ocp-dnsmasq@.service" /etc/systemd/system/
 restorecon -R "$conf_dir" /etc/systemd/system/ocp-dnsmasq@.service
 
-# The earlier layout served the nodes from an instance named "vm".
-if systemctl is-enabled ocp-dnsmasq@vm >/dev/null 2>&1; then
-  systemctl disable --now ocp-dnsmasq@vm
-  log "disabled ocp-dnsmasq@vm from the earlier layout"
-fi
-rm -f "$conf_dir/vm.conf"
-
 for instance in business lan; do
   dnsmasq --test --conf-file="$conf_dir/$instance.conf"
 done
@@ -28,7 +20,7 @@ systemctl enable ocp-dnsmasq@business ocp-dnsmasq@lan
 systemctl restart ocp-dnsmasq@business ocp-dnsmasq@lan
 
 # The host itself resolves through /etc/hosts, so its own resolver settings stay
-# untouched. The host is an admin client: it uses the management path, like the LAN.
+# untouched. The host is an admin client: it goes through LAN_IP, like the LAN.
 marker="# managed by rizen8-single"
 sed -i "/${marker}\$/d" /etc/hosts
 cat >>/etc/hosts <<EOF
@@ -44,8 +36,7 @@ expect() {
 expect "$BUSINESS_HOST_IP" "api.$CLUSTER_DOMAIN" "$BUSINESS_HOST_IP"
 expect "$BUSINESS_HOST_IP" "api-int.$CLUSTER_DOMAIN" "$BUSINESS_HOST_IP"
 expect "$BUSINESS_HOST_IP" "test.apps.$CLUSTER_DOMAIN" "$BUSINESS_HOST_IP"
-expect "$BUSINESS_HOST_IP" "master-0.$CLUSTER_DOMAIN" "$MASTER_0_BUSINESS_IP"
-expect "$BUSINESS_HOST_IP" "infra-0.$CLUSTER_DOMAIN" "$INFRA_0_BUSINESS_IP"
+expect "$BUSINESS_HOST_IP" "master-0.$CLUSTER_DOMAIN" "$MASTER_0_IP"
 expect "$LAN_IP" "api.$CLUSTER_DOMAIN" "$LAN_IP"
 expect "$LAN_IP" "test.apps.$CLUSTER_DOMAIN" "$LAN_IP"
 log "DNS and DHCP are running"

@@ -27,22 +27,19 @@ fi
 ((VM_VCPUS >= 4)) || fail "VM_VCPUS=$VM_VCPUS is below the documented master minimum of 4"
 ((VM_MEM_GIB >= 16)) || fail "VM_MEM_GIB=$VM_MEM_GIB is below the documented master minimum of 16"
 ((VM_DISK_GIB >= 100)) || fail "VM_DISK_GIB=$VM_DISK_GIB is below the documented minimum of 100"
-((INFRA_VCPUS >= 2)) || fail "INFRA_VCPUS=$INFRA_VCPUS is below the documented worker minimum of 2"
-((INFRA_MEM_GIB >= 8)) || fail "INFRA_MEM_GIB=$INFRA_MEM_GIB is below the documented worker minimum of 8"
-((INFRA_DISK_GIB >= 100)) || fail "INFRA_DISK_GIB=$INFRA_DISK_GIB is below the documented minimum of 100"
 
 threads=$(nproc)
-if ((VM_VCPUS > threads || INFRA_VCPUS > threads)); then
-  fail "a VM's vCPU count exceeds the host's $threads threads"
+if ((VM_VCPUS > threads)); then
+  fail "VM_VCPUS=$VM_VCPUS exceeds the host's $threads threads"
 else
-  ok "vCPUs: 3 x $VM_VCPUS + 1 x $INFRA_VCPUS on $threads host threads"
+  ok "vCPUs: 3 x $VM_VCPUS on $threads host threads"
 fi
 
 mem_kib=$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)
 mem_gib=$((mem_kib / 1024 / 1024))
-needed=$((3 * VM_MEM_GIB + INFRA_MEM_GIB + 4))
+needed=$((3 * VM_MEM_GIB + 4))
 if ((mem_gib < needed)); then
-  fail "need ${needed} GiB RAM (3 x ${VM_MEM_GIB} + ${INFRA_MEM_GIB} + 4 for the host), host has ${mem_gib} GiB: lower VM_MEM_GIB (minimum 16) or INFRA_MEM_GIB (minimum 8)"
+  fail "need ${needed} GiB RAM (3 x ${VM_MEM_GIB} + 4 for the host), host has ${mem_gib} GiB: lower VM_MEM_GIB (minimum 16)"
 else
   ok "RAM: need ${needed} GiB, host has ${mem_gib} GiB"
 fi
@@ -50,7 +47,7 @@ fi
 probe=$VM_DISK_DIR
 while [[ ! -d $probe ]]; do probe=$(dirname "$probe"); done
 free_gib=$(df --output=avail -BG "$probe" | tail -1 | tr -dc '0-9')
-needed=$((3 * VM_DISK_GIB + INFRA_DISK_GIB + 2))
+needed=$((3 * VM_DISK_GIB + 2))
 if ((free_gib < needed)); then
   warn "disks are thin provisioned but could grow to ${needed} GiB; ${free_gib} GiB free on $probe"
 else
@@ -73,17 +70,12 @@ if command -v nmcli >/dev/null; then
   fi
 fi
 
-# A route to either subnet through anything but its own bridge is a clash.
-check_subnet() {
-  local label=$1 host_ip=$2 bridge=$3 cidr=$4 conflict
-  if conflict=$(ip -4 -o route show to match "$host_ip" | grep -v '^default' | grep -v "dev ${bridge} "); then
-    fail "$label subnet $cidr overlaps an existing route: $conflict"
-  else
-    ok "$label subnet $cidr is free"
-  fi
-}
-check_subnet business "$BUSINESS_HOST_IP" "$BUSINESS_BRIDGE" "$BUSINESS_CIDR"
-check_subnet management "$MGMT_HOST_IP" "$MGMT_BRIDGE" "$MGMT_CIDR"
+# A route to the subnet through anything but its own bridge is a clash.
+if conflict=$(ip -4 -o route show to match "$BUSINESS_HOST_IP" | grep -v '^default' | grep -v "dev ${BUSINESS_BRIDGE} "); then
+  fail "business subnet $BUSINESS_CIDR overlaps an existing route: $conflict"
+else
+  ok "business subnet $BUSINESS_CIDR is free"
+fi
 
 check_port() {
   local proto=$1 port=$2 owner=$3 listeners

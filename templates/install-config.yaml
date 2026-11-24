@@ -3,10 +3,11 @@ baseDomain: ${BASE_DOMAIN}
 metadata:
   name: ${CLUSTER_NAME}
 compute:
+  # Compact cluster: no workers, the three masters are schedulable and run workloads.
   - name: worker
     architecture: amd64
     hyperthreading: Enabled
-    replicas: 1
+    replicas: 0
 controlPlane:
   name: master
   architecture: amd64
